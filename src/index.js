@@ -27,6 +27,23 @@ function checksExistsUserAccount(request, response, next) {
   next()
 }
 
+function verifyTaskExists(request, response, next) {
+  const idTask = request.params.id;
+  const {customer} = request;
+
+  const task = customer.todos.find(task => task.id === idTask)
+
+  if(!task) {
+    return response.status(404).json({
+      error: "No task with that ID was found associated with that user."
+    })
+  }
+
+  request.task = task;
+
+  return next()
+}
+
 
 // Cadastrar usuário
 app.post('/users', (request, response) => {
@@ -80,19 +97,11 @@ app.post('/todos', checksExistsUserAccount, (request, response) => {
   })
 });
 
-// Buscar task por id
+// Alterar task via id
 app.put('/todos/:id', checksExistsUserAccount, (request, response) => {
-  const idTask = request.params.id;
   const {customer} = request;
   const {title, deadLine} = request.body;
 
-  const task = customer.todos.find(task => task.id === idTask)
-
-  if(!task) {
-    return response.status(404).json({
-      error: "No task with that ID was found associated with that user."
-    })
-  }
 
   if(title) task.title = title
   if(deadLine) task.deadLine = deadLine
@@ -103,12 +112,28 @@ app.put('/todos/:id', checksExistsUserAccount, (request, response) => {
 
 });
 
-app.patch('/todos/:id/done', checksExistsUserAccount, (request, response) => {
-  // Complete aqui
+app.patch('/todos/:id/done', checksExistsUserAccount, verifyTaskExists,(request, response) => {
+    const {customer, task} = request;
+    
+    task.done = true;
+
+    return response.status(200).json({
+      message: "The task was marked as completed."
+    })
+
+    
 });
 
-app.delete('/todos/:id', checksExistsUserAccount, (request, response) => {
-  // Complete aqui
+app.delete('/todos/:id', checksExistsUserAccount, verifyTaskExists, (request, response) => {
+  const {customer, task} = request;
+
+  const index = customer.findIndex(itemTask => itemTask.id === task.id);
+
+  customer.todos.splice(index, 1);
+
+  return response.status(200).json({
+    message: "Task deleted sucessfully"
+  })
 });
 
 module.exports = app;
