@@ -57,57 +57,59 @@ app.post('/users', (request, response) => {
     })
   }
 
-  users.push({
+  const userData = {
     id: uuidv4(),
     name,
     username,
     todos: [],
-  })
+  }
 
-  return response.status(201).json({
-    message: "User created sucessfully"
-  })
+  users.push(userData)
+
+  return response.status(201).json(userData)
 });
 
 // Buscar lista de tasks de um usuário
 app.get('/todos', checksExistsUserAccount, (request, response) => {
   const {customer} = request;
 
-  return response.status(200).json({
-    status: 200,
-    todos: customer.todos
-  })
+  return response.status(200).json(customer.todos)
 });
 
 // Criar task
 app.post('/todos', checksExistsUserAccount, (request, response) => {
   const {customer} = request;
-  const {deadLine, title} = request.body;
+  const {deadline, title} = request.body;
 
-  customer.todos({
+
+  const taskData = {
     id: uuidv4(),
     title,
     done: false,
-    deadLine: new Date(deadLine),
+    deadline: new Date(deadline),
     created_at: new Date()
-  })
+  }
 
-  return response.status(201).json({
-    message: "Task created sucessfully"
-  })
+  customer.todos.push(taskData)
+
+
+
+  return response.status(201).json(taskData)
 });
 
 // Alterar task via id
-app.put('/todos/:id', checksExistsUserAccount, (request, response) => {
-  const {customer} = request;
-  const {title, deadLine} = request.body;
+app.put('/todos/:id', checksExistsUserAccount, verifyTaskExists,  (request, response) => {
+  const {customer, task} = request;
+  const {title, deadline} = request.body;
 
 
   if(title) task.title = title
-  if(deadLine) task.deadLine = deadLine
+  if(deadline) task.deadline = deadline
 
-  return response.status(200).json({
-    message: "Task changed successfully"
+  return response.status(201).json({
+    deadline: task.deadline,
+    done: task.done,
+    title: task.title
   })
 
 });
@@ -116,22 +118,19 @@ app.patch('/todos/:id/done', checksExistsUserAccount, verifyTaskExists,(request,
     const {customer, task} = request;
     
     task.done = true;
-
-    return response.status(200).json({
-      message: "The task was marked as completed."
-    })
-
-    
+    return response.status(200).json(task)
 });
 
 app.delete('/todos/:id', checksExistsUserAccount, verifyTaskExists, (request, response) => {
-  const {customer, task} = request;
+  const { customer, task } = request;
 
-  const index = customer.findIndex(itemTask => itemTask.id === task.id);
+  const index = customer.todos.findIndex(itemTask => itemTask.id === task.id);
 
-  customer.todos.splice(index, 1);
+  if (index > -1) {
+    customer.todos.splice(index, 1);
+  }
 
-  return response.status(200).json({
+  return response.status(204).json({
     message: "Task deleted sucessfully"
   })
 });
